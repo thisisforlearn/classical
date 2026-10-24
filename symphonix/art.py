@@ -1,0 +1,233 @@
+"""symphonix art registry: 24 composer portraits + big letters + icons."""
+
+LETTERS = {
+    ' ': ['   ', '   ', '   ', '   ', '   '],
+    'A': [' ███ ', '█   █', '█████', '█   █', '█   █'],
+    'B': ['████ ', '█   █', '████ ', '█   █', '████ '],
+    'C': [' ████', '█    ', '█    ', '█    ', ' ████'],
+    'D': ['████ ', '█   █', '█   █', '█   █', '████ '],
+    'E': ['█████', '█    ', '████ ', '█    ', '█████'],
+    'F': ['█████', '█    ', '████ ', '█    ', '█    '],
+    'G': [' ████', '█    ', '█  ██', '█   █', ' ████'],
+    'H': ['█   █', '█   █', '█████', '█   █', '█   █'],
+    'I': ['███ ', ' █  ', ' █  ', ' █  ', '███ '],
+    'J': ['  ███', '   █ ', '   █ ', '█  █ ', ' ███ '],
+    'K': ['█   █', '█  █ ', '███  ', '█  █ ', '█   █'],
+    'L': ['█    ', '█    ', '█    ', '█    ', '█████'],
+    'M': ['█   █', '██ ██', '█ █ █', '█   █', '█   █'],
+    'N': ['█   █', '██  █', '█ █ █', '█  ██', '█   █'],
+    'O': [' ███ ', '█   █', '█   █', '█   █', ' ███ '],
+    'P': ['████ ', '█   █', '████ ', '█    ', '█    '],
+    'Q': [' ███ ', '█   █', '█   █', '█  ██', ' ████'],
+    'R': ['████ ', '█   █', '████ ', '█  █ ', '█   █'],
+    'S': [' ████', '█    ', ' ███ ', '    █', '████ '],
+    'T': ['█████', '  █  ', '  █  ', '  █  ', '  █  '],
+    'U': ['█   █', '█   █', '█   █', '█   █', ' ███ '],
+    'V': ['█   █', '█   █', '█   █', ' █ █ ', '  █  '],
+    'W': ['█   █', '█   █', '█ █ █', '██ ██', '█   █'],
+    'X': ['█   █', ' █ █ ', '  █  ', ' █ █ ', '█   █'],
+    'Y': ['█   █', ' █ █ ', '  █  ', '  █  ', '  █  '],
+    'Z': ['█████', '   █ ', '  █  ', ' █   ', '█████'],
+    '0': [' ███ ', '█   █', '█   █', '█   █', ' ███ '],
+    '1': [' █  ', '██  ', ' █  ', ' █  ', '███ '],
+    '2': ['███ ', '   █', ' ███', '█   ', '████'],
+    '3': ['███ ', '   █', ' ███', '   █', '███ '],
+    '4': ['█  █', '█  █', '████', '   █', '   █'],
+    '5': ['████', '█    ', '████', '    █', '████'],
+    '6': [' ███ ', '█    ', '████ ', '█   █', ' ███ '],
+    '7': ['█████', '   █ ', '  █  ', ' █   ', ' █   '],
+    '8': [' ███ ', '█   █', ' ███ ', '█   █', ' ███ '],
+    '9': [' ███ ', '█   █', ' ████', '   █ ', '███  '],
+    '-': ['     ', '     ', '█████', '     ', '     '],
+    '·': ['    ', '    ', ' ██ ', '    ', '    '],
+}
+
+def render_bigtext(text):
+    """Join big letters into 5-row block text."""
+    rows = ["", "", "", "", ""]
+    for ch in text:
+        glyph = LETTERS.get(ch.upper(), LETTERS[" "])
+        for i in range(5):
+            rows[i] += glyph[i] + " "
+    return rows
+
+NOTES = ["\u266a", "\u266b", "\u266c", "\u2669", "\u266d", "\u266e", "\u266f"]
+
+GENERIC_ART = [
+    "   \u266a   \u266b   \u266c   \u2669   \u266a   \u266b   \u266c",
+    "  ~~~~~~~~~~~~~~~~~~~~~~~~~~",
+    "   |P| |#| |P| |#| |P|",
+    "   |#| |P| |#| |P| |#|",
+    "  ~~ symphonix concert hall ~~",
+]
+
+COMPOSER_DATA = [
+    ('bach',
+     'Johann Sebastian Bach',
+     'Baroque · 1685-1750',
+     'The father of counterpoint - logic and prayer in every voice.',
+     '      .-~"\'\'\'~~\'"-.\n    .\' ~((~))((~)) \'.\n   / ~~((~ ))( ~))~ \\\n  | ~((~( w ))( )~))~ |\n   \\ ((~(______ )~)) /\n    \'-((________)),-\'\n       \\.________,./\n        |        |\n        | o    o |\n        \\   v   /\n         \\ ~ /          ~counterpoint~\n        .-~~~-.\n       / |#|#| \\\n      |  |#|#|  |\n       \\________/'),
+    ('mozart',
+     'Wolfgang Amadeus Mozart',
+     'Classical · 1756-1791',
+     '41 symphonies and mischievous genius. He died broke; his music never will.',
+     "       ,-~~~~-,-~~~~-,\n     ,' ~~((~))((~~)) '.\n    / ~~(( ~-~~-~~- ))~\\\n   | ~((~( ,( ) ) ~))~ |\n    \\ ((  ~~~ ~~  ))/\n     '-(______ ~~ ___)-'\n         \\   ~~   /\n          \\ o  o /\n           \\ ]v[ /\n            \\ ~ /\n        .-|=====|-.\n       /  # # # #  \\\n      |  ~harpsic~  |\n      '-=============-''"),
+    ('beethoven',
+     'Ludwig van Beethoven',
+     'Classical-Romantic · 1770-1827',
+     'Deaf. Defiant. He rebuilt music from scratch and left nine thunders.',
+     "        ~ /\\ ~ /\\ ~\n      ~ /  \\ /  \\ ~\n     |~/ @@ ~~ @@ \\@|\n     | \\@@@@@@@@@@/ |\n      \\ '@@@@@@@@@'/\n       '-@@@,,,@@@-'\n          '-____,-'\n        /         \\\n        \\ > =    = <\n         \\ (\\_/) /\n      .---=-~-=-~~~-=-~~~.\n     /   |''|''|''|''|    \\\n      \\  | P P P P P |   /\n       '-===SCARF=====-'"),
+    ('chopin',
+     'Frederic Chopin',
+     'Romantic · 1810-1849',
+     'Poet of the piano. Nocturnes that make the night slightly better.',
+     "       ,-~ ,-~~~.\n      ,' '-/    \\'-,\n     |  ,-~ ,--. ,-,\n     | / ~ ( ~) ( ~ \\ |\n      \\  ~ '~~' '  ~ /\n       '-.________.-'\n           \\    /\n            \\ o  o /\n           \\  ,, /\n            ','.'\n        .-|=====|-.\n       /  ~ notes ~ \\\n      | P|#|P|#|P|#|P|\n       '-'======= '-''"),
+    ('schubert',
+     'Franz Schubert',
+     'Romantic · 1797-1828',
+     '600 songs from a tiny Vienna flat. The Trout is your new earworm.',
+     "        ,n, ,n, ,n,\n      ,.-'~,.-'~,.-'.\n     / ' ',~' ',~' ',\n    | ,~' ,~'  ,~'  ,|\n     '-,_______,-'\n       \\lazyface./\n        (O)    (O)\n         \\ v  /\n          '\\_/'\n       ~.~.~.~.~.\n      /  o o o  \\\n      \\ ~songs~ /        of songs\n       '-=======-'"),
+    ('brahms',
+     'Johannes Brahms',
+     'Romantic · 1833-1897',
+     'Scholar of romance; a giant beard and an even bigger Fourth.',
+     "        .-~~~~~~~.\n      .'___________'.\n     .|-------------|.\n    _/             \\_\n   |  o     o    |\n   \\    |V|     /\n     \\,#########,\n      |#########|      ~- beard -~\n      |##-(36)##|\n        |=====|\n      ~cheer~cheer~"),
+    ('vivaldi',
+     'Antonio Vivaldi',
+     'Baroque · 1678-1741',
+     'The red priest of Venice. Four Seasons, four vibes, one playlist.',
+     "       .-~-~.||.-~-~.\n      /  ( ( ( ) )   \\\n     | (( ( (|V|) ) ))|\n      \\ ((~( ~V~ ))~)/\n       '-(________)-'\n         \\      /\n          \\ o o /\n           \\ v /\n            \\~/\n        .-==~~**~==-.\n       / |vivaldi|\\ \\\n      /     .=.=.=.    \\\n      \\ ~violin~violin~ /\n       '-=.=.=.=.=.-'"),
+    ('tchaikovsky',
+     'Pyotr Ilyich Tchaikovsky',
+     'Romantic · 1840-1893',
+     'Swan Lake, Nutcracker, Pathetique. Gorgeous sorrow in 3/4 time.',
+     '        ,------,\n      / ~~~\'~~ \\\n     | ~~~~~~~~ |\n      \'-.____,-\'\n       \\      /\n        \\ o  o /\n         \\ |V|/\n          \\ | /\n          \'|\'\n      .--(~)~-\'-.\n     /   "".  "". \\\n     \\    swan-wing.\''),
+    ('handel',
+     'George Frideric Handel',
+     'Baroque · 1685-1759',
+     'Messiah, Water Music, coronations. Double the wig, double the drama.',
+     "     .,-~~~-,,-~~~-,,.\n   ,' ~~((~))((~~)) '.\n  / ~~((  ~~~~~ ~ ))~~\\\n | ~((~( ~~~~~ ~~ )~))~ |\n  \\ ((~(~ wig ~ ~))~)/\n   '-(____~~~_____)-\n      '-.______,-'\n       \\    /\n        \\ oo /\n        \\vv/\n       .---.\n      / AH.. \\\n      | ~HDN~ |"),
+    ('haydn',
+     'Joseph Haydn',
+     'Classical · 1732-1809',
+     'Father of the symphony - and of the joke-cathedral romance.',
+     "        .-~~~~~-.\n      .' wig wig '.\n     / ~~~~~~~ ',\n    | ~ ~ ~ ~ ~ |\n     '-~~~\\~-~~,-'\n       \\      /\n        \\ o o /\n        \\  v /\n         \\~/\n        .====.\n       / harp \\\n       \\ ~ ~/ ~"),
+    ('wagner',
+     'Richard Wagner',
+     'Romantic · 1813-1883',
+     'Opera dragons, the Ring, and interludes that never end.',
+     '        ,----------.\n      /  ~~~ | ~~~ \\\n     | ~  |wing| ~ |\n      \\ ~~~ | ~~~ /\n       \'-,____,-\'\n         \\   /\n          \\ o o /\n           \\v v/\n          |\'====\'|\n      .-~~~~,~~~~-.\n     /  ~ATHENA~    \\\n     \\ ",=,=,=,",   /\n       \'~ring\'~.~.'),
+    ('liszt',
+     'Franz Liszt',
+     'Romantic · 1811-1886',
+     'Screaming-teen-idol of the 1840s. Piano on fire, guaranteed.',
+     "     \\o/  ,-~~~-.  \\o/\n      \\ / ~~~~~ \\ /\n      |( ,(o o), )|\n      \\   '~~'   /\n       '-.____.-'\n           |  |\n          /~'~'\\\n       .-======-.\n      /  \\P|P|P/  \\\n      \\   )\\//(\n      '-'\\P|P|/'-'~ piano"),
+    ('debussy',
+     'Claude Debussy',
+     'Impressionist · 1862-1918',
+     'Light as fog, sharp as claws. La Mer rewired the orchestra.',
+     "        __________\n      / ~~~~~~\\~~~ \\\n     | ~~~~~~ ~~~~~ |\n      \\ ~~~~~~~~~~~ /\n       '-,______,-'\n        \\    /\n         \\ o o /\n         \\ ~ ~/     la mer....\n       ,.~,.-.\n      /  ~sea  \\\n      \\ ~~~~~~ /"),
+    ('grieg',
+     'Edvard Grieg',
+     'Romantic · 1843-1907',
+     'Fjords, trolls, and one famous Peer Gynt that keeps you humble.',
+     "        .-~~~~~-.\n      .'_________,'\n     .-------------.\n      \\           /\n       \\ o  o   o/\n        \\ ~ ~~ /\n      ,--|_|__|--,\n      | ~~~~beard |\n       '-.______,.-'\n      ~ /\\ ~/\\ ~/\\ ~\n      ~yodel fjord~"),
+    ('rachmaninoff',
+     'Sergei Rachmaninoff',
+     'Romantic · 1873-1943',
+     'Big hands, long face, enormous chords. Concerto 2 forever.',
+     "       ____________\n      |  ~~~~~~~~  |\n      |~ receding ~|\n       '-.______,-'\n        \\       /\n         \\ -o  o-/\n          \\  v  /\n           \\ () /\n        |\\-------|\n        | # # # # |\n      .--octave--.\n      |  P P P P  |\n      '\\________/'  ~ improvisational cascades"),
+    ('satie',
+     'Erik Satie',
+     'Modern · 1866-1925',
+     'Gymnopedies and furniture music. The original minimalist troll.',
+     "        .-~~~~~-.\n      .'_________'.\n     |.__________.|\n      \\   |   /\n       \\ @  @ /\n        \\  v /\n         \\-.-/\n      .-=====-.\n     /  ,gymn, \\\n     \\ \\o\\ /o/ /    ~ le fil d'ariane\n      '-.____.-'"),
+    ('schumann',
+     'Robert Schumann',
+     'Romantic · 1810-1856',
+     'Dream-poems for piano; Carnaval makes you want to dance.',
+     "        /?, ,. ,.\\\n      /~, /~, /~\\ ~\\\n     | ~' ' . ' '~ ' |\n     | ,~, ,~, ,~,   |\n      \\ ' ~ , '  , ~ /\n       '-.________.-'\n          \\     /\n           \\ o o/\n           \\('-)\n       .---birds---.\n      / ~ , ' , ,  \\\n      \\  ~fountain~/"),
+    ('mendelssohn',
+     'Felix Mendelssohn',
+     'Romantic · 1809-1847',
+     'Prodigy of arches, fireflies and the wedding march.',
+     "        ,------,\n      / ~~~~\\\\~~~\\\n     | ~~~~~~~~ |\n      '-.__.__,-'\n         \\    /\n          \\ o o/\n          \\ ~ /\n      .--==arch==--.\n     /   ,-=.=,     \\\n     \\ ~wedding~    /\n       '-=========.'"),
+    ('verdi',
+     'Giuseppe Verdi',
+     'Romantic · 1813-1901',
+     'Opera thunder and the voice of Italy. Va, pensiero.',
+     "        .-~~~~~~-.\n      .'__________'.\n     .|------------|.\n      \\          /\n       \\ 0    0 /\n        \\ (VV) /\n       _|/====\\|_\n      |####_####|\n      | (V)VV(V) |\n      '------==='"),
+    ('puccini',
+     'Giacomo Puccini',
+     'Romantic · 1858-1924',
+     'Tosca, Butterfly, Turandot - your heart, gently sauteed.',
+     "       .-----------.\n      /  ~ fedora ~ \\\n     |'---._____.---'|\n      \\           /\n       \\ o    o  /\n        \\ (VV) /\n      _,|'==','|_,        ,:=:=:,\n     ( 'TOSCA' ' )      MADAMA"),
+    ('scarlatti',
+     'Domenico Scarlatti',
+     'Baroque · 1685-1757',
+     '555 keyboard sonatas of pure sparkle.',
+     "     .,-~~~~~-,-~~~-,,.\n   ,' ~((~))((~))(( ~ '.\n  / ~~( wig~wig~wig )~~\\\n | ~((~(  K555  )~))~  |\n  \\ ((~( ~~~~~~ )~))  /\n   '-(______ ~ ____)-'\n      '\\    /'\n       \\ o o /\n       \\ 'o' /\n       ~555~"),
+    ('dvorak',
+     'Antonin Dvorak',
+     'Romantic · 1841-1904',
+     'Bohemia to America: the New World Symphony hums itself.',
+     '        .-~~~~~-.\n      / ~~~ | ~~~\\\n     |  ~ dome ~  |\n      \\ ~~~~~~~~~ /\n       \'-.,___,.-\'\n        \\     /\n         \\ o o /\n         \\ (#) /\n      .+"+.+"+.+"+.\n        ~travels~'),
+    ('mahler',
+     'Gustav Mahler',
+     'Romantic-Modern · 1860-1911',
+     'Ninth symphonies to the infinite.',
+     "       ____________\n      | ~ dome ~   |\n      |~~ forehead ~|\n       '-.____,.-'\n        \\     /\n         \\ -o -o /\n          \\ |v| /\n          \\  ~  /\n     .--IX--.    ~ adagio 9\n      \\~~~~~/   _"),
+    ('stravinsky',
+     'Igor Stravinsky',
+     'Modern · 1882-1971',
+     'The Rite - the first chord in history to start a riot.',
+     "        ,--------,\n      / \\~~~~~ /\\\n     | ~~~~~~~~ |\n      '-.__.__,-'\n         \\o   o/\n          \\'o'/\n      .--=Rite=-.\n      \\ ~ p p p ~ /\n       '-.____.-'"),
+]
+
+ALIASES = {
+    "bach": ['bach', 'johann sebastian'],
+    "mozart": ['mozart', 'wolfgang', 'amadeus'],
+    "beethoven": ['beethoven', 'ludwig'],
+    "chopin": ['chopin', 'frederic', 'fryderyk'],
+    "schubert": ['schubert'],
+    "brahms": ['brahms', 'johannes'],
+    "vivaldi": ['vivaldi', 'antonio'],
+    "tchaikovsky": ['tchaikovsky', 'chaikovsky', 'pyotr', 'peter ilyich'],
+    "handel": ['handel', 'george frideric', 'george frederick'],
+    "haydn": ['haydn', 'josef'],
+    "wagner": ['wagner', 'richard'],
+    "liszt": ['liszt'],
+    "debussy": ['debussy', 'claude'],
+    "grieg": ['grieg', 'edvard'],
+    "rachmaninoff": ['rachmaninoff', 'rachmaninov', 'sergei'],
+    "satie": ['satie', 'erik'],
+    "schumann": ['schumann', 'robert'],
+    "mendelssohn": ['mendelssohn', 'felix'],
+    "verdi": ['verdi', 'giuseppe'],
+    "puccini": ['puccini', 'giacomo'],
+    "scarlatti": ['scarlatti', 'domenico'],
+    "dvorak": ['dvorak', 'dvorak', 'antonin', 'antonn'],
+    "mahler": ['mahler', 'gustav'],
+    "stravinsky": ['stravinsky', 'igor', 'fyodorovich'],
+}
+ORDER = ["bach", "mozart", "beethoven", "chopin", "schubert", "brahms", "vivaldi", "tchaikovsky", "handel", "haydn", "wagner", "liszt", "debussy", "grieg", "rachmaninoff", "satie", "schumann", "mendelssohn", "verdi", "puccini", "scarlatti", "dvorak", "mahler", "stravinsky"]
+
+COMPOSERS = {}
+for _key, _name, _era, _blurb, _art in COMPOSER_DATA:
+    COMPOSERS[_key] = _name, _era, _blurb, _art
+
+def match_composer(text):
+    """Find a registered composer key in any text (case-insensitive)."""
+    t = (text or "").lower()
+    for key, alts in ALIASES.items():
+        for blk in alts:
+            if blk in t:
+                return key
+    return None
+
+def art_lines(key):
+    """Portrait lines for a composer key (falls back to the concert hall)."""
+    if key in COMPOSERS:
+        return COMPOSERS[key][3].splitlines()
+    return list(GENERIC_ART)
+
