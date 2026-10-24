@@ -1,4 +1,5 @@
 """Configuration, themes and on-disk state for symphonix."""
+from __future__ import annotations
 import json
 import os
 from pathlib import Path
