@@ -79,3 +79,29 @@ def test_live_archive_search(live):
     res = S.search("bach air", limit=1)
     assert res
     assert res[0].url.startswith("http")
+
+
+# ------------------------------------------------------------------ random
+def test_masterpieces_cover_all_composers():
+    from symphonix.masterpieces import MASTERPIECES
+    from symphonix.art import ORDER
+    missing = [k for k in ORDER if k not in MASTERPIECES]
+    assert not missing, f"composers missing masterpieces: {missing}"
+    for key, works in MASTERPIECES.items():
+        assert works and all(isinstance(w, str) and w for w in works)
+
+
+def test_random_roulette_modes():
+    from symphonix.roulette import compute_random_piece
+    from symphonix.masterpieces import MASTERPIECES
+    key, q, label = compute_random_piece("chopin", max_mode=True)
+    assert key == "chopin" and "signature" in label and q
+    key, q, label = compute_random_piece("bach", max_mode=False)
+    assert key == "bach" and q.endswith("Bach") and "random" in label
+    key, q, label = compute_random_piece(None, max_mode=False)
+    assert key in MASTERPIECES and q
+    # 'max' as first positional token flips signature mode
+    key, q, label = compute_random_piece("max")
+    assert key in MASTERPIECES and "signature" in label
+    key, q, label = compute_random_piece("max mozart")
+    assert key == "mozart" and "signature" in label

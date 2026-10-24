@@ -8,6 +8,8 @@ import time
 
 from . import __version__
 from .art import COMPOSERS, ORDER, art_lines, match_composer
+from .masterpieces import MASTERPIECES
+from .roulette import RandomNobody, compute_random_piece, fetch_tracks, list_masterpieces
 from .config import cache_dir, get_palette, get_config, set_config, THEMES
 from .track import Track
 from .search import search as do_search
@@ -97,6 +99,7 @@ def cmd_default(args):
         "   sx search bethoven 5th       → colored results table\n"
         "   sx play   mozart requiem     → streams instantly w/ equalizer\n"
         "   sx download bach brandenburg → smart download to disc\n"
+        "   sx random max beethoven      → 🎲 surprise masterpiece mode\n"
         "   sx quiz                      → guess-the-composer game mode\n"
         "   sx theme vaporwave --preview → swap ALL the colors\n"
         "   sx composers                 → 24 legendary artists, ASCII portraits\n"
@@ -436,6 +439,41 @@ def cmd_theme(args):
             _theme_preview(name, pal)
     return 0
 
+
+# ---------------------------------------------------------------- random ---
+def cmd_random(args):
+    name_tokens = list(getattr(args, "name", []) or [])
+    max_mode = bool(getattr(args, "max", False))
+    if name_tokens and name_tokens[0].lower() == "max":
+        max_mode = True
+        name_tokens = name_tokens[1:]
+    name = " ".join(name_tokens).strip() or None
+    try:
+        key, query, label = compute_random_piece(name, max_mode=max_mode)
+    except RandomNobody:
+        from rich.table import Table
+        con().print(f"[red]'{name}' is not one of the 24 maestros[/] — try one of:")
+        con().print("[dim]" + " · ".join(MASTERPIECES) + "[/]")
+        return 1
+    scl = palette_for(key)
+    _banner_key(key)
+    icon = "👑" if max_mode else "🎲"
+    con().print(f"  {icon} [bold #{scl[1]}]{label.upper()}[/]  ·  search: [dim]{query}[/]")
+    if args.list:
+        con().print("  [dim]masterpiece pool:[/]")
+        for i, mw in enumerate(list_masterpieces(key), 1):
+            con().print(f"    {i:2d}. {mw}".replace("1.", "★."))
+        return 0
+    tracks = fetch_tracks(key, query, limit=max(getattr(args, "limit", 4), 2))
+    if not tracks:
+        con().print("[yellow]...the world did not have that recording. Rolling again helps ;)[/]")
+        return 1
+    _search_rows(tracks)
+    if getattr(args, "no_play", False):
+        return 0
+    return run_queue(tracks)
+
+
 # ----------------------------------------------------------------- about ---
 def cmd_about(args):
     from rich.panel import Panel
@@ -539,6 +577,15 @@ def build_parser():
     p = sub.add_parser("banner", help="show composer art")
     p.add_argument("key", nargs="?", default=None, help="composer name/key")
     p.set_defaults(func=cmd_banner)
+
+    p = sub.add_parser("random", aliases=["randome", "rnd"],
+                       help="♪ roulette: a random masterpiece by a random maestro")
+    p.add_argument("name", nargs="*", help="composer name; prefix with `max` for the signature piece")
+    p.add_argument("--max", action="store_true", help="the single signature masterpiece")
+    p.add_argument("--list", "-l", action="store_true", help="show the composer's masterpiece pool")
+    p.add_argument("--limit", "-n", type=int, default=4)
+    p.add_argument("--no-play", action="store_true", help="show only, don't play")
+    p.set_defaults(func=cmd_random)
 
     p = sub.add_parser("about", help="about symphonix / sources / license")
     p.set_defaults(func=cmd_about)
