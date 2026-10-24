@@ -6,15 +6,31 @@ from .track import Track, unique
 def _mod(name):
     return import_module(f"symphonix.sources.{name}")
 
+_CACHE = {}
+_MAX_CACHED = 96
+
+
 def search(query: str = "", composer: str = "", limit: int = 10,
            which: str = "all") -> "list[Track]":
-    """Search public-domain sources. which: all|archive|musopen|imslp"""
+    """Search public-domain sources. which: all|archive|musopen|imslp
+
+    Results are cached for the process lifetime (menus feel instant)."""
+    ckey = (query, composer, limit, which)
+    hit = _CACHE.get(ckey)
+    if hit is not None:
+        return list(hit)
     if which in ("archive", "archive_org"):
-        return _mod("archive_org").search(query, composer, limit)
-    if which == "musopen":
-        return _mod("musopen").search(query, limit)
-    if which == "imslp":
-        return _mod("imslp").search(query, limit)
+        out = _mod("archive_org").search(query, composer, limit)
+    elif which == "musopen":
+        out = _mod("musopen").search(query, limit)
+    elif which == "imslp":
+        out = _mod("imslp").search(query, limit)
+    else:
+        raise ValueError(f"unknown source: {which}")
+    if len(_CACHE) > _MAX_CACHED:
+        _CACHE.clear()
+    _CACHE[ckey] = list(out)
+    return list(out)
 
     jobs = {}
     with cf.ThreadPoolExecutor(max_workers=3) as ex:
@@ -28,4 +44,8 @@ def search(query: str = "", composer: str = "", limit: int = 10,
                 res[src] = fut.result()
             except Exception:
                 res[src] = []
-    return unique(res["archive"] + res["musopen"] + res["imslp"])[: max(limit * 2, 12)]
+    out = unique(res["archive"] + res["musopen"] + res["imslp"])[: max(limit * 2, 12)]
+    if len(_CACHE) > _MAX_CACHED:
+        _CACHE.clear()
+    _CACHE[ckey] = list(out)
+    return list(out)

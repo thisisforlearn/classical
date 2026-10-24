@@ -105,3 +105,26 @@ def test_random_roulette_modes():
     assert key in MASTERPIECES and "signature" in label
     key, q, label = compute_random_piece("max mozart")
     assert key == "mozart" and "signature" in label
+
+
+# ------------------------------------------------------------ ui tiers
+def test_menu_tiers_and_mode_store():
+    from symphonix.menu import MODES, get_ui_mode, set_ui_mode, pick
+    set_ui_mode("number")
+    assert get_ui_mode() in MODES
+    set_ui_mode("arrow")
+    # non-tty: arrow tier skipped, demote chain returns None w/o crash
+    assert pick("t", ["a", "b"]) is None
+
+
+def test_work_prefetch_offline(monkeypatch):
+    from symphonix.workmode import prefetch
+    from symphonix.track import Track
+    hits = {"a": [], "b": []}
+    def fake(q, composer="", limit=5, which="all"):
+        idx = "a" if "toccata" in q.lower() else "b"
+        return [Track(id=idx, url=f"http://{idx}", title=q[:24], source="archive")]
+    import symphonix.search as S
+    monkeypatch.setattr(S, "search", fake)
+    keys0 = list(prefetch())
+    assert keys0 and all(t.url for t in keys0)

@@ -1,0 +1,38 @@
+Script started on 2026-10-24 11:51:05+00:00 [COMMAND="/home/neko/ml_env/bin/python - <<'PY' import sys sys.path.insert(0, '.') from symphonix.menu import _arrow_pick r = _arrow_pick('demo:', ['Alpha','Beta','Gamma'], ['#8a2be2','#d946ef','#06b6d4'], 0) sys.stdout.write('RESULT=%s\n' % r) PY" <not executed on terminal>]
+
+Warning: Input is not a terminal (fd=0).
+[?12l[?25h[6n[?2004h[?1l[?25l[0m[?7l[0m[J[0;38;5;171;1m?[0;38;5;92;1m demo: [0m(↑ ↓ move · enter select · q back)[0m
+[0;38;5;171;1m ▶ [0;38;5;16;48;5;171;1mAlpha[0m
+[0m   Beta[0m
+[0m   Gamma[8D[3A[42C[?7h[0m[?7l[42D[0m[J[0;38;5;171;1m?[0;38;5;92;1m demo: [0m(↑ ↓ move · enter select · q back)[42D[0m
+[J[?7h[0m[?2004l[?12l[?25hTraceback (most recent call last):
+  File [35m"<stdin>"[0m, line [35m4[0m, in [35m<module>[0m
+  File [35m"/home/neko/pylib-making/symphonix/menu.py"[0m, line [35m99[0m, in [35m_arrow_pick[0m
+    answer = menu.ask()
+  File [35m"/home/neko/ml_env/lib/python3.13/site-packages/questionary/question.py"[0m, line [35m64[0m, in [35mask[0m
+    return [31mself.unsafe_ask[0m[1;31m(patch_stdout)[0m
+           [31m~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^[0m
+  File [35m"/home/neko/ml_env/lib/python3.13/site-packages/questionary/question.py"[0m, line [35m89[0m, in [35munsafe_ask[0m
+    return [31mself.application.run[0m[1;31m()[0m
+           [31m~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/home/neko/ml_env/lib/python3.13/site-packages/prompt_toolkit/application/application.py"[0m, line [35m1000[0m, in [35mrun[0m
+    return [31masyncio.run[0m[1;31m(coro)[0m
+           [31m~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/lib/python3.13/asyncio/runners.py"[0m, line [35m195[0m, in [35mrun[0m
+    return [31mrunner.run[0m[1;31m(main)[0m
+           [31m~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/lib/python3.13/asyncio/runners.py"[0m, line [35m118[0m, in [35mrun[0m
+    return [31mself._loop.run_until_complete[0m[1;31m(task)[0m
+           [31m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^[0m
+  File [35m"/usr/lib/python3.13/asyncio/base_events.py"[0m, line [35m725[0m, in [35mrun_until_complete[0m
+    return [31mfuture.result[0m[1;31m()[0m
+           [31m~~~~~~~~~~~~~[0m[1;31m^^[0m
+  File [35m"/home/neko/ml_env/lib/python3.13/site-packages/prompt_toolkit/application/application.py"[0m, line [35m884[0m, in [35mrun_async[0m
+    return [1;31mawait _run_async(f)[0m
+           [1;31m^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/home/neko/ml_env/lib/python3.13/site-packages/prompt_toolkit/application/application.py"[0m, line [35m744[0m, in [35m_run_async[0m
+    result = [1;31mawait f[0m
+             [1;31m^^^^^^^[0m
+[1;35mEOFError[0m
+
+Script done on 2026-10-24 11:51:06+00:00 [COMMAND_EXIT_CODE="1"]

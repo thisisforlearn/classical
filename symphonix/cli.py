@@ -103,6 +103,7 @@ def cmd_default(args):
         "   sx play   mozart requiem     → streams instantly w/ equalizer\n"
         "   sx download bach brandenburg → smart download to disc\n"
         "   sx random max beethoven      → 🎲 surprise masterpiece mode\n"
+        "   sx work                      → 🧑‍💻 endless focus canon + staff art\n"
         "   sx quiz                      → guess-the-composer game mode\n"
         "   sx theme vaporwave --preview → swap ALL the colors\n"
         "   sx composers                 → 24 legendary artists, ASCII portraits\n"
@@ -194,7 +195,7 @@ def cmd_play(args):
     # (shuffled the list above already)
     return ret
 
-def run_queue(queue):
+def run_queue(queue, note=""):
     from .config import cache_dir
     p = _player()
     ctl = _controller()
@@ -208,7 +209,7 @@ def run_queue(queue):
             action = None
             try:
                 from .anim import playback_ui
-                action = playback_ui(p, t, key, palette, ctl)
+                action = playback_ui(p, t, key, palette, ctl, note=note)
             except KeyboardInterrupt:
                 action = None
             if action == "done":
@@ -270,6 +271,42 @@ def cmd_cache(args):
         con().print(str(d))
     return 0
 
+# ------------------------------------------------------------ work / ui -----
+def cmd_work(args):
+    """sx work — endless recommendation loop with animated staff art."""
+    con().print("[bold]🧑‍💻 work mode[/] · cornerstones on repeat — "
+                "space: pause · n: skip · q: stop")
+    from .workmode import WorkRunner
+    try:
+        WorkRunner(palette_for()).play_forever()
+    except KeyboardInterrupt:
+        pass
+    except Exception as exc:
+        con().print(f"[red]work mode stopped:[/] {exc}")
+    return 0
+
+
+def cmd_ui(args):
+    """sx ui [arrow|number|type] — choose control tier (stored)."""
+    from .menu import MODES, get_ui_mode, set_ui_mode
+    want = (args.mode or "").strip().lower()
+    alias = {"arrow": "arrow", "arrows": "arrow", "q": "arrow",
+             "num": "number", "numbered": "number", "numbers": "number",
+             "n": "number", "type": "type", "typing": "type", "t": "type"}
+    if want in alias:
+        set_ui_mode(alias[want])
+    cur = get_ui_mode()
+    if not want or want not in alias:
+        from .menu import _LABELS
+        con().print(f"[bold]current UI tier:[/] {cur} " +
+                    " · ".join(f"{k}={v[:14]}" for k, v in _LABELS.items()))
+        con().print("[dim] sx ui arrow | sx ui num | sx ui type — "
+                    "also switchable inside the menu[/]")
+    else:
+        con().print(f"[green]UI tier ≈ {cur}[/]")
+    return 0
+
+
 # ----------------------------------------------------------------- menu ---
 def cmd_menu(args=None):
     """Arrow-key concert hall - the main way. Typed commands stay as fallback."""
@@ -284,17 +321,22 @@ def cmd_menu(args=None):
             return ""
 
     menu_pal = palette_for()
+    from .menu import ensure_ui_mode, get_ui_mode, set_ui_mode
+    ensure_ui_mode()
     acts = ["🔎  Search & Play",
             "👑  Recommended cornerstones",
+            "🧑‍💻  Work mode — endless focus canon",
             "🎲  Random — surprise me",
             "🏆  Composer pages",
             "📥  Download for offline",
             "📜  Playlists",
             "🎯  Quiz",
             "🎨  Themes",
+            "🎛  UI mode: {mode}",
             "ℹ️   About",
             "🚪  Exit"]
     while True:
+        acts[9] = f"🎛  UI mode: {get_ui_mode()}"
         i = pick("[ symphonix concert hall ]", acts, palette=menu_pal,
                  hint="↑↓ choose · enter go · type to filter · q leave")
         if i is None:
@@ -327,11 +369,20 @@ def cmd_menu(args=None):
                 if res:
                     run_queue([best_track(res, work)] + res[:2])
                 continue
-            elif i == 2:                                     # random
+            elif i == 2:                                     # work mode
+                try:
+                    from .workmode import WorkRunner
+                    WorkRunner(palette_for()).play_forever()
+                except KeyboardInterrupt:
+                    pass
+                except Exception as exc:
+                    con().print(f"[red]work mode hiccup:[/] {exc}")
+                continue
+            elif i == 3:                                     # random
                 cmd_random(SimpleNamespace(name=[], max=False, list=False,
                                            limit=4, no_play=False))
                 continue
-            elif i == 3:                                     # composer pages
+            elif i == 4:                                     # composer pages
                 pretty = [f"{COMPOSERS[key][0]} ({key})" for key in ORDER]
                 k = pick("the 24 maestros", pretty, palette=palette_for())
                 if k is None:
@@ -355,13 +406,13 @@ def cmd_menu(args=None):
                     _banner_key(ckey)
                     cmd_info(SimpleNamespace(name=ckey))
                 continue
-            elif i == 4:                                     # download
+            elif i == 5:                                     # download
                 q = _type("📥 download what: ")
                 if q:
                     cmd_download(SimpleNamespace(query=q, limit=1, all=False,
                                                  src=None))
                 continue
-            elif i == 5:                                     # playlists
+            elif i == 6:                                     # playlists
                 from .playlists import Playlists
                 P = Playlists()
                 names = P.list()
@@ -385,11 +436,11 @@ def cmd_menu(args=None):
                             cmd_playlist(SimpleNamespace(playlist_cmd="play",
                                                          name=names[k2]))
                 continue
-            elif i == 6:                                     # quiz
+            elif i == 7:                                     # quiz
                 cmd_quiz(SimpleNamespace(quiz_cmd="start", rounds=5, limit=5,
                                          src=None, fast=True))
                 continue
-            elif i == 7:                                     # theme
+            elif i == 8:                                     # theme
                 names = list(THEMES)
                 k = pick("themes", names, palette=palette_for())
                 if k is None:
@@ -397,7 +448,17 @@ def cmd_menu(args=None):
                 set_config(theme=names[k])
                 con().print(f"[green]theme → {names[k]}[/]")
                 continue
-            elif i == 8:
+            elif i == 9:                                     # UI mode
+                cur = get_ui_mode()
+                k3 = pick("interaction tiers — arrows > numbers > typing",
+                          ["arrow keys (questionary, cross-platform)",
+                           "numbered list",
+                           "typing"],
+                          palette=menu_pal)
+                if k3 is not None:
+                    set_ui_mode(("arrow", "number", "type")[k3])
+                continue
+            elif i == 10:
                 cmd_about(SimpleNamespace())
                 continue
             else:
@@ -749,6 +810,13 @@ def build_parser():
     p = sub.add_parser("banner", help="show composer art")
     p.add_argument("key", nargs="?", default=None, help="composer name/key")
     p.set_defaults(func=cmd_banner)
+
+    p = sub.add_parser("work", help="🧑‍💻 endless focus loop of canon cornerstones")
+    p.set_defaults(func=cmd_work)
+
+    p = sub.add_parser("ui", help="🎛 control tier: arrow | num | type")
+    p.add_argument("mode", nargs="?", default="")
+    p.set_defaults(func=cmd_ui)
 
     p = sub.add_parser("menu", aliases=["m"],
                        help="🎛  the arrow-key concert hall (main UI)")

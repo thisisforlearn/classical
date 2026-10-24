@@ -45,10 +45,11 @@ def gradient(text: str, palette, width: int = None) -> Text:
         out.append("\n")
     return out
 
-def paint(art: str, palette, rows=None) -> Text:
-    """Vertical gradient paint of multi-line art."""
+def paint(art, palette, rows=None) -> Text:
+    """Vertical gradient paint of multi-line art (str or list of lines)."""
     pal = list(palette or ["#ff00a0", "#ffd166"])
-    lines = (art or "").rstrip("\n").split("\n")
+    lines = [str(l) for l in (art if isinstance(art, (list, tuple))
+              else str(art or "").rstrip("\n").split("\n"))]
     n = len(lines)
     t = Text()
     for i, line in enumerate(lines):
@@ -157,15 +158,91 @@ def _eq_grid(levels_deq, width=12, height=6, palette=("#8a2be2",)) -> Text:
             cols.append(sum(vals) / max(len(vals), 1))
         # smooth: cols[-1]=newest
         cols = cols[::-1]
-    style = lambda r: pal0(palette, r)
+    # stable gradient per ROW (no random color churn -> no flicker)
     for y in range(height - 1, -1, -1):
         rowc = max((y + 1) / height, 0.12)
         line = []
         for lvl in cols:
             filled = lvl >= rowc
             line.append("█" if filled else "·")
-        t.append("".join(line) + "\n", style=random.choice(list(palette) or ["#8a2be2"]))
+        t.append("".join(line) + "\n", style=pal0(palette, min(y, len(palette) - 1)))
     return t
+
+
+def work_frame(tick, palette, width=46, height=7):
+    """Animated classical staff with sliding notes (work mode art)."""
+    pal = list(palette) or ["#8a2be2"]
+    rows = [Text()] * height
+    rows = [Text() for _ in range(height)]
+    staff = 3                                     # center row of the pentagram
+    for y in range(height):
+        line = Text()
+        for x in range(width):
+            if y in range(1, 6) and (x % 6 == 0):
+                line.append("─" if x % 6 == 0 else " ")
+            else:
+                line.append(" ")
+        rows[y] = line
+    # sliding notes across the staff
+    for i in range(4):
+        x = (tick * 2 + i * 11) % (width + 8) - 4
+        if 0 <= x < width:
+            phase = math.sin(tick * 0.22 + i * 1.3)
+            y = staff + (1 if phase > 0.5 else -1 if phase < -0.5 else 0)
+            rows[y].append("")                    # keep row object
+            # insert note char at position x by rebuilding the row
+            base = rows[y].plain
+            if x < len(base):
+                rows[y] = Text(base[:x]) + Text(
+                    random.choice(("♪", "♫", "♩", "♬")),
+                    style="bold " + pal0(pal, i)) + Text(base[x + 1:])
+    t = Text()
+    for row in rows:
+        t.append(row)
+        t.append("\n")
+    return t
+
+
+def work_ui(player, palette, controller=None):
+    """Endless work-mode display: staff art + eq + progress, until stopped."""
+    label = "work ♪ canon of cornerstones"
+    keep = True
+    tick = 0
+    from .anim import Live
+    live = Live(Align.center(Text()), console=console,
+                refresh_per_second=7, transient=False)
+    with live:
+        while keep:
+            if controller:
+                action = controller.poll()
+                if action in ("next", "stop", "back"):
+                    keep = False
+                    break
+                if action == "pause":
+                    player.toggle()
+            tick += 1
+            est = getattr(player, "_duration_estimate", 0.0) or player.duration
+            elapsed = getattr(player, "elapsed", 0.0)
+            frac = min(elapsed / est, 1.0) if est else 0.0
+            bar = "█" * int(frac * 30) + "░" * (30 - int(frac * 30))
+            icon = "▶" if player.status == "playing" else "⏸"
+            art = paint(work_frame(tick, palette).plain.split("\n")[:7], palette)
+            body = Group(
+                Align.center(Panel(
+                    Group(art, Text(), _eq_grid(player.levels,
+                                                width=20, height=6,
+                                                palette=palette)),
+                    title=Text(" 🎼 work mode ", style="bold " + pal0(palette, 1)),
+                    subtitle=Text("q/n: stop · space: pause",
+                                  style=f"dim {pal0(palette, 3)}"),
+                    border_style=pal0(palette, 0), padding=(1, 2))),
+                Text(f"\n{icon}  {int(elapsed)/60:02.0f}:{int(elapsed)%60:02d}"
+                     f"  ·  {frac*100:02.0f}%  ·  {bar}",
+                     style=f"dim {pal0(palette, 2)}"),
+            )
+            live.update(Align.center(body))
+            time.sleep(0.14)
+
 
 def playback_ui(player, track, composer_key: str, palette, controller=None,
                 note: str = ""):
@@ -180,50 +257,59 @@ def playback_ui(player, track, composer_key: str, palette, controller=None,
     mini_art = "\n".join(art_lines(composer_key)) if composer_key else "\n".join(GENERIC_ART)
     label = (track.label if track else "—")[:66]
     duration = getattr(player, "duration", 0.0) or 0.0
+    if note == "work":
+        return work_ui(player, palette, controller=controller)
     stop_requested = False
-    while not player.finished.is_set() and not stop_requested:
-        if controller:
-            action = controller.poll()
-            if action == "pause":
-                player.toggle()
-            elif action in ("next", "stop"):
-                stop_requested = True
-                player.stop()
-                break
-        tick += 1
-        lvl_height = 6
-        eq = _eq_grid(player.levels, width=14, height=lvl_height, palette=palette)
-        prog = "·"
-        speed = getattr(player, "speed_note", "")
-        est = duration or getattr(player, "_duration_estimate", 0.0)
-        elapsed = getattr(player, "elapsed", 0.0)
-        if est:
-            frac = min(elapsed / est, 1.0)
-            bar = "█" * max(int(frac * 34), 1) + "░" * (34 - int(frac * 34))
-        else:
-            bar = "░" * 34
-        status = player.status
-        icon = "▶" if status == "playing" else ("⏸" if status == "paused" else "♪")
-        head = Text()
-        head.append(_marquee(label, tick=tick) + "\n", style="bold " + pal0(palette, 0))
-        head.append(f"{icon} {status}  ·  {int(elapsed)}s{(' /' + f'{int(est)}s') if est else ''}"
-                    f"  ·  {speed or ''}".rstrip() + "\n", style="dim")
-        head.append(bar + "\n", style=pal0(palette, 2))
-        head.append(_notes_line(50, dens=8), style="dim " + pal0(palette, 3))
-        group = Group(
-            Align.center(Panel(
-                Align.center(Group(
-                    paint(mini_art.split("\n")[2:12] and "\n".join(mini_art.split("\n")[3:11]), palette),
-                    eq,
-                )),
-                title=Text(f" {name or 'Composer'} ".strip(), style="bold " + pal0(palette, 1))
-                      if name else Text(" resident ♫ ", style="dim"),
-                subtitle=Text("keys: [space] pause · [n] skip · [s] save + next · [q] stop",
-                              style="dim"),
-                border_style=pal0(palette, 0), padding=(0, 2)),
-            ),
-            head,
-        )
-        with Live(group, console=console, refresh_per_second=10, transient=True):
+    from .anim import Live as _Live
+    live = _Live(Align.center(Text()), console=console,
+                 refresh_per_second=7, transient=False)
+    with live:
+        while not player.finished.is_set() and not stop_requested:
+            if controller:
+                action = controller.poll()
+                if action == "pause":
+                    player.toggle()
+                elif action in ("next", "stop"):
+                    stop_requested = True
+                    player.stop()
+                    break
+                elif action == "back":
+                    stop_requested = True
+                    player.stop()
+                    break
+            tick += 1
+            speed = getattr(player, "speed_note", "")
+            lvl_height = 6
+            eq = _eq_grid(player.levels, width=14, height=lvl_height, palette=palette)
+            est = duration or getattr(player, "_duration_estimate", 0.0)
+            elapsed = getattr(player, "elapsed", 0.0)
+            if est:
+                frac = min(elapsed / est, 1.0)
+                bar = "█" * max(int(frac * 34), 1) + "░" * (34 - int(frac * 34))
+            else:
+                bar = "░" * 34
+            status = player.status
+            icon = "▶" if status == "playing" else ("⏸" if status == "paused" else "♪")
+            head = Text()
+            head.append(_marquee(label, tick=tick) + "\n", style="bold " + pal0(palette, 0))
+            head.append(f"{icon} {status}  ·  {int(elapsed)}s{(' /' + f'{int(est)}s') if est else ''}"
+                        f"  ·  {speed or ''}".rstrip() + "\n", style="dim")
+            head.append(bar + "\n", style=pal0(palette, 2))
+            head.append(_notes_line(50, dens=8), style="dim " + pal0(palette, 3))
+            group = Group(
+                Align.center(Panel(
+                    Align.center(Group(
+                        paint("\n".join(mini_art.split("\n")[3:11]), palette),
+                        eq,
+                    )),
+                    title=Text(f" {name or 'Composer'} ".strip(), style="bold " + pal0(palette, 1))
+                          if name else Text(" resident ♫ ", style="dim"),
+                    subtitle=Text("keys: [space] pause · [n] skip · [s] save + next · [q] stop",
+                                  style="dim"),
+                    border_style=pal0(palette, 0), padding=(0, 2)),
+                ),
+                head,
+            )
+            live.update(Align.center(group))
             time.sleep(0.12)
     return "next" if stop_requested else "done"
