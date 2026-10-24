@@ -62,8 +62,8 @@ def fetch_tracks(key, query, limit=4):
         except Exception:
             extra = []
         results = results + extra
-    weighted = sorted(results, key=lambda t: (t.source != "archive", -(t.size or 0)))
-    return weighted[: limit]
+    from .scoring import rank
+    return rank(results, query)[:limit]
 
 
 def list_masterpieces(key):

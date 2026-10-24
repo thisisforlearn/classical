@@ -16,12 +16,12 @@ MASTERPIECES = {
         "Mass in B Minor Kyrie",
     ],
     "mozart": [
+        "Symphony No. 41 Jupiter",
+        "The Marriage of Figaro Overture",
         "Requiem Mass Lacrimosa",
         "Eine kleine Nachtmusik",
-        "The Magic Flute Overture",
-        "Symphony No. 40",
         "Piano Concerto No. 21 Andante",
-        "The Marriage of Figaro Overture",
+        "Don Giovanni Overture",
         "Rondo alla Turca",
     ],
     "beethoven": [
@@ -178,3 +178,20 @@ def signature_piece(composer_key):
     """The single most famous showpiece of a composer (max mode)."""
     works = MASTERPIECES.get(composer_key, [])
     return works[0] if works else ""
+
+
+# Globally recommended cornerstones (menu "Recommended" wheel)
+RECOMMENDED = [
+    ("mozart", "Symphony No. 41 Jupiter", "Mozart Jupiter symphony 41"),
+    ("mozart", "The Marriage of Figaro Overture", "Mozart Figaro overture"),
+    ("mozart", "Requiem Mass Lacrimosa", "Mozart Requiem lacrimosa"),
+    ("mozart", "Eine kleine Nachtmusik", "Mozart Eine kleine Nachtmusik"),
+    ("mozart", "Piano Concerto No. 21 Andante", "Mozart concerto 21 andante"),
+    ("mozart", "Don Giovanni Overture", "Mozart Don Giovanni overture"),
+    ("beethoven", "Symphony No. 5", "Beethoven symphony 5"),
+    ("beethoven", "Symphony No. 9 Ode to Joy", "Beethoven symphony 9"),
+    ("vivaldi", "Four Seasons Spring", "Vivaldi Spring four seasons"),
+    ("bach", "Toccata and Fugue in D minor BWV 565", "Bach toccata fugue"),
+    ("handel", "Messiah Hallelujah Chorus", "Handel hallelujah chorus"),
+    ("grieg", "In the Hall of the Mountain King", "Grieg mountain king"),
+]

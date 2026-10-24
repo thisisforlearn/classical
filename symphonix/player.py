@@ -290,9 +290,19 @@ class Player:
         self._download_obj = self._DownloadObj = self._Download()
         obj = self._download_obj
         dl_mod = import_module("symphonix.downloader")
+        # keep at most this many bytes ahead of what the listener has heard
+        # (128 kbps => 16000 bytes per second of audio); polite to bandwidth.
+        ahead_bytes = max(512 * 1024, 30 * 16000)
+        rate = 16000.0
         try:
             def on_progress(written, total, speed):
                 obj.written, obj.total = written, total
+                # throttle: wait until the playhead catches up
+                while not self._stop.is_set():
+                    playhead = int(getattr(self, "elapsed", 0.0) * rate)
+                    if written - playhead <= ahead_bytes:
+                        break
+                    time.sleep(0.06)
 
             dl_mod.stream_to_file(track.url, path, on_progress=on_progress)
             obj.is_written_complete = True

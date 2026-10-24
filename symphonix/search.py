@@ -22,7 +22,7 @@ def search(query: str = "", composer: str = "", limit: int = 10,
         jobs[ex.submit(_mod("musopen").search, query, limit)] = "musopen"
         jobs[ex.submit(_mod("imslp").search, query, 5)] = "imslp"
         res = {"archive": [], "musopen": [], "imslp": []}
-        for fut in cf.as_completed(jobs, timeout=45):
+        for fut in cf.as_completed(jobs, timeout=18):
             src = jobs[fut]
             try:
                 res[src] = fut.result()

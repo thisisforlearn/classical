@@ -68,7 +68,10 @@ def _pick_track(query: str, limit=8, which="all"):
                   source="direct")
         return t
     results = do_search(query, limit=limit, which=which)
-    return results[0] if results else None
+    if not results:
+        return None
+    from .scoring import best_track
+    return best_track(results, query)
 
 def _player():
     from .player import Player
@@ -266,6 +269,175 @@ def cmd_cache(args):
     else:
         con().print(str(d))
     return 0
+
+# ----------------------------------------------------------------- menu ---
+def cmd_menu(args=None):
+    """Arrow-key concert hall - the main way. Typed commands stay as fallback."""
+    from types import SimpleNamespace
+    from .menu import pick
+    from .scoring import best_track
+
+    def _type(prompt):
+        try:
+            return input(prompt).strip()
+        except (EOFError, KeyboardInterrupt):
+            return ""
+
+    menu_pal = palette_for()
+    acts = ["🔎  Search & Play",
+            "👑  Recommended cornerstones",
+            "🎲  Random — surprise me",
+            "🏆  Composer pages",
+            "📥  Download for offline",
+            "📜  Playlists",
+            "🎯  Quiz",
+            "🎨  Themes",
+            "ℹ️   About",
+            "🚪  Exit"]
+    while True:
+        i = pick("[ symphonix concert hall ]", acts, palette=menu_pal,
+                 hint="↑↓ choose · enter go · type to filter · q leave")
+        if i is None:
+            return 0
+        try:
+            if i == 0:                                       # search & play
+                q = _type("🔎 search: ")
+                if q:
+                    res = do_search(q, limit=12, which="all")
+                    if not res:
+                        con().print("[yellow]nothing found[/]")
+                        continue
+                    first = best_track(res, q)
+                    k = pick("results — enter = play now",
+                             [t.label for t in res], palette=menu_pal)
+                    if k is not None:
+                        queue = res[k:] + res[:k] if first is not res[k] else res
+                        run_queue(queue[:3])
+                continue
+            elif i == 1:                                     # recommended
+                from .masterpieces import RECOMMENDED
+                lbls = [f"{COMPOSERS[k][0].split()[-1]} — {w}" for k, w, _ in RECOMMENDED]
+                k = pick("cornerstones of the canon", lbls, palette=palette_for())
+                if k is None:
+                    continue
+                ckey, work, squery = RECOMMENDED[k]
+                res = do_search(squery or f"{work} "
+                                f"{COMPOSERS[ckey][0].split()[-1]}",
+                                limit=6, which="all")
+                if res:
+                    run_queue([best_track(res, work)] + res[:2])
+                continue
+            elif i == 2:                                     # random
+                cmd_random(SimpleNamespace(name=[], max=False, list=False,
+                                           limit=4, no_play=False))
+                continue
+            elif i == 3:                                     # composer pages
+                pretty = [f"{COMPOSERS[key][0]} ({key})" for key in ORDER]
+                k = pick("the 24 maestros", pretty, palette=palette_for())
+                if k is None:
+                    continue
+                ckey = ORDER[k]
+                works = list_masterpieces(ckey)
+                subvals = [
+                    f"👑 signature: {works[0] if works else '?'}",
+                    "🎲 random famous work",
+                    "ℹ️  enrichment: info + full page",
+                    "←  back",
+                ]
+                j = pick(pretty[k], subvals, palette=palette_for(ckey))
+                if j == 0:
+                    cmd_random(SimpleNamespace(name=[ckey], max=True, list=False,
+                                               limit=4, no_play=False))
+                elif j == 1:
+                    cmd_random(SimpleNamespace(name=[ckey], max=False, list=False,
+                                               limit=4, no_play=False))
+                elif j == 2:
+                    _banner_key(ckey)
+                    cmd_info(SimpleNamespace(name=ckey))
+                continue
+            elif i == 4:                                     # download
+                q = _type("📥 download what: ")
+                if q:
+                    cmd_download(SimpleNamespace(query=q, limit=1, all=False,
+                                                 src=None))
+                continue
+            elif i == 5:                                     # playlists
+                from .playlists import Playlists
+                P = Playlists()
+                names = P.list()
+                opts = list(names) + ["✚  add: search a piece"]
+                opts.append("☰  play a playlist")
+                k = pick("playlists", opts, palette=palette_for())
+                if k is None:
+                    continue
+                entry = opts[k]
+                if entry == "✚  add: search a piece":
+                    q = _type("search a piece to save: ")
+                    nm = _type("playlist name: ")
+                    if q and nm:
+                        cmd_playlist(SimpleNamespace(playlist_cmd="add", name=nm,
+                                                     query=[q], pick=1,
+                                                     play=False))
+                elif entry == "☰  play a playlist":
+                    if names:
+                        k2 = pick("which", names, palette=palette_for())
+                        if k2 is not None:
+                            cmd_playlist(SimpleNamespace(playlist_cmd="play",
+                                                         name=names[k2]))
+                continue
+            elif i == 6:                                     # quiz
+                cmd_quiz(SimpleNamespace(quiz_cmd="start", rounds=5, limit=5,
+                                         src=None, fast=True))
+                continue
+            elif i == 7:                                     # theme
+                names = list(THEMES)
+                k = pick("themes", names, palette=palette_for())
+                if k is None:
+                    continue
+                set_config(theme=names[k])
+                con().print(f"[green]theme → {names[k]}[/]")
+                continue
+            elif i == 8:
+                cmd_about(SimpleNamespace())
+                continue
+            else:
+                return 0
+        except KeyboardInterrupt:
+            continue
+        except SystemExit:
+            return 0
+
+
+def cmd_recommend(args):
+    """sx recommend [composer] — cornerstones of the canon, instantly."""
+    from .masterpieces import RECOMMENDED
+    from .scoring import best_track
+    pool = RECOMMENDED
+    if args.name:
+        key = match_composer(args.name)
+        if key:
+            subset = [(k, w, q) for k, w, q in RECOMMENDED if k == key]
+            pool = subset or RECOMMENDED
+            if not subset:
+                con().print(f"[dim]no canon cornerstones for {key} — "
+                            "playing one from the grand list[/]")
+    if not pool:
+        pool = RECOMMENDED
+    key, work, squery = random.choice(pool)
+    scl = palette_for(key)
+    _banner_key(key)
+    con().print(f"  🌟 [bold #{scl[1]}]RECOMMENDED[/] · "
+                f"{COMPOSERS[key][0].split()[-1]} — {work}")
+    query = squery or f"{work} {COMPOSERS[key][0].split()[-1]}"
+    res = do_search(query, limit=6, which="all")
+    if not res:
+        con().print("[yellow]no recordings found — try `sx search`[/]")
+        return 1
+    best_res = best_track(res, work)
+    first = best_track(res, work)
+    ordered = [first] + [t for t in res if t is not first][:2]
+    return run_queue(ordered[:3])
+
 
 # ------------------------------------------------------------- playlist ----
 def cmd_playlist(args):
@@ -578,6 +750,15 @@ def build_parser():
     p.add_argument("key", nargs="?", default=None, help="composer name/key")
     p.set_defaults(func=cmd_banner)
 
+    p = sub.add_parser("menu", aliases=["m"],
+                       help="🎛  the arrow-key concert hall (main UI)")
+    p.set_defaults(func=cmd_menu)
+
+    p = sub.add_parser("recommend", aliases=["rec"],
+                       help="🌟 play a canon cornerstone (pass composer to filter)")
+    p.add_argument("name", nargs="?", default="")
+    p.set_defaults(func=cmd_recommend)
+
     p = sub.add_parser("random", aliases=["randome", "rnd"],
                        help="♪ roulette: a random masterpiece by a random maestro")
     p.add_argument("name", nargs="*", help="composer name; prefix with `max` for the signature piece")
@@ -601,7 +782,8 @@ def main(argv=None):
         os.environ.setdefault("SYMPHONIX_THEME", getattr(args, "theme", "") or "")
         argsfunc = getattr(args, "func", cmd_default)
         if not hasattr(args, "func") or args.cmd == "default":
-            return cmd_default(args)
+            cmd_default(args)
+            return cmd_menu(args)
         ret = argsfunc(args)
     except KeyboardInterrupt:
         print()
