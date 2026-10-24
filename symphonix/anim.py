@@ -226,7 +226,8 @@ def work_ui(player, palette, controller=None):
                 if action == "pause":
                     player.toggle()
             tick += 1
-            est = getattr(player, "_duration_estimate", 0.0) or player.duration
+            est = float(getattr(player, "_duration_estimate", 0.0)
+                        or getattr(player, "duration", 0.0) or 0.0)
             elapsed = getattr(player, "elapsed", 0.0)
             frac = min(elapsed / est, 1.0) if est else 0.0
             bar = "█" * int(frac * 30) + "░" * (30 - int(frac * 30))

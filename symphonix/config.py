@@ -26,6 +26,7 @@ def config_path() -> Path:
 
 DEFAULT_CONFIG = {
     "theme": "dawn",
+    "ui": "arrow",                  # arrow | number | type
     "custom_colors": [],            # custom theme colors set via `sx theme custom`
     "composer_overrides": {},       # composer key -> custom palette
     "lines_per_search": 10,
@@ -42,7 +43,14 @@ def _read() -> dict:
     except Exception:
         data = dict(DEFAULT_CONFIG)
     merged = dict(DEFAULT_CONFIG)
-    merged.update({k: v for k, v in data.items() if k in DEFAULT_CONFIG})
+    # keep every saved key, even ones newer than this release
+    merged.update({k: v for k, v in data.items() if isinstance(v, type(
+        next(iter(DEFAULT_CONFIG.values()), None)) or True)})
+    # sanity: only known types survive
+    bad = [k for k, v in merged.items()
+           if not isinstance(v, (str, int, float, bool, dict, list, type(None)))]
+    for k in bad:
+        merged.pop(k, None)
     return merged
 
 def _write(cfg: dict) -> None:

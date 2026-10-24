@@ -128,3 +128,40 @@ def test_work_prefetch_offline(monkeypatch):
     monkeypatch.setattr(S, "search", fake)
     keys0 = list(prefetch())
     assert keys0 and all(t.url for t in keys0)
+
+
+# ------------------------------------------------------- regression v1.0.5
+def test_ui_tier_persists_across_reads():
+    from symphonix.config import set_config, get_config
+    from symphonix.menu import set_ui_mode
+    set_ui_mode("type")
+    assert get_config().get("ui") == "type"      # was silently dropped before
+    set_ui_mode("arrow")
+    assert get_config().get("ui") == "arrow"
+
+
+def test_hifi_scoring_prefers_lossless():
+    from symphonix.scoring import score_track
+    from symphonix.track import Track
+    def mk(ext, dur, size):
+        return Track(id="x", url="u", title="Q work", composer="q",
+                     performer="p", year="", source="archive",
+                     ext=ext, duration=dur, size=size)
+    lossless = mk("flac", "10:00", 42 * 1024 * 1024)
+    losscrap = mk("mp3", "10:00", 1 * 1024 * 1024)
+    assert score_track(lossless, "q work") > score_track(losscrap, "q work")
+
+
+def test_work_ui_safe_with_zero_duration():
+    from symphonix.anim import work_ui
+    class P0:
+        finished = False
+        status = "playing"
+        levels = []
+        duration = None
+        elapsed = 1.0
+        _duration_estimate = 0
+        def stop(self): self.finished = True
+    class C0:
+        def poll(self): return "stop"
+    work_ui(P0(), ["#8a2be2", "#fff"], controller=C0())   # must not raise

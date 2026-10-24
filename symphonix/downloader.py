@@ -34,7 +34,9 @@ def stream_to_file(url: str, dest: str, on_progress=None,
     if os.path.exists(dest) and os.path.getsize(dest) > 0:
         resume_at = os.path.getsize(dest)
         headers["Range"] = f"bytes={resume_at}-"
-    total = content_size(url) + resume_at if resume_at else content_size(url)
+    total = content_size(url)
+    if resume_at:
+        total += resume_at
     s = get_session()
     with s.get(url, headers=headers, stream=True, timeout=(6, 60)) as r:
         r.raise_for_status()

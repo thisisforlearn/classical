@@ -203,6 +203,27 @@ class Player:
     # ---------------- miniaudio: progressive download-while-streaming ------
     def _play_stream(self, track, path, min_buffer=512 * 1024):
         dl_mod = import_module("symphonix.downloader")
+        ext = (getattr(track, "ext", "") or "").lower()
+        if ext in ("m4a", "aac"):
+            # miniaudio cannot decode m4a/aac natively: grab fully, use ffplay
+            self._download_thread_start(track, str(path), dl_mod)
+            total = 0
+            try:
+                total = dl_mod.content_size(track.url) or 0
+            except Exception:
+                total = 0
+            while not self._stop.is_set():
+                try:
+                    have = path.stat().st_size
+                except OSError:
+                    have = 0
+                if total and have >= total * 0.99 or                         (self._dl_thread and not self._dl_thread.is_alive()):
+                    break
+                time.sleep(0.2)
+            self.status = "playing"
+            self._fallback(track, str(path))
+            self.finished.set()
+            return
         head = None
         try:
             head = dl_mod.content_size(track.url)
@@ -210,9 +231,7 @@ class Player:
             head = 0
         total = head or 0
         self._duration_estimate = (total / (128000 / 8)) if total else 0
-        self._dl_thread = threading.Thread(
-            target=self._download, args=(track, str(path)), daemon=True)
-        self._dl_thread.start()
+        self._download_thread_start(track, str(path), dl_mod)
         target = min_buffer if not total else min(min_buffer, total * 0.95 or min_buffer)
         deadline = time.time() + 40
         while (not path.exists() or path.stat().st_size < target) and not self._stop.is_set():
@@ -223,6 +242,7 @@ class Player:
             time.sleep(0.08)
         wrapped = None
         played_frames = 0
+        decode_fails = 0
         self.status = "playing"
         while not self._stop.is_set():
             if not path.exists():
@@ -232,8 +252,13 @@ class Player:
                     str(path), output_format=miniaudio.SampleFormat.SIGNED16,
                     nchannels=2, sample_rate=44100, frames_to_read=1024,
                     seek_frame=played_frames)
-            except Exception:
-                time.sleep(0.2)
+            except Exception as exc:
+                decode_fails += 1
+                if decode_fails > 8:
+                    self.error = f"cannot decode audio: {exc}"
+                    self.status = "error"
+                    break
+                time.sleep(0.25)
                 continue
             metered = self._metered(chunks)
             next(metered)
@@ -287,6 +312,11 @@ class Player:
             self._dl_thread.join(timeout=3)
         self.status = "finished"
         self.finished.set()
+
+    def _download_thread_start(self, track, path, dl_mod=None):
+        self._dl_thread = threading.Thread(
+            target=self._download, args=(track, str(path)), daemon=True)
+        self._dl_thread.start()
 
     # ------------------------------------------------------------- download
     class _Download:
