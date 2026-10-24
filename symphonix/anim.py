@@ -203,20 +203,25 @@ def work_frame(tick, palette, width=46, height=7):
     return t
 
 
+SESSION = {"quit": False}
+
+
 def work_ui(player, palette, controller=None):
     """Endless work-mode display: staff art + eq + progress, until stopped."""
-    label = "work ♪ canon of cornerstones"
-    keep = True
+    label = "work ♪ focus canon"
+    stop_action = None
     tick = 0
-    from .anim import Live
-    live = Live(Align.center(Text()), console=console,
-                refresh_per_second=7, transient=False)
+    from .anim import Live as _Live
+    live = _Live(Align.center(Text()), console=console,
+                 refresh_per_second=7, transient=False)
     with live:
-        while keep:
+        while True:
             if controller:
                 action = controller.poll()
                 if action in ("next", "stop", "back"):
-                    keep = False
+                    if action == "stop":          # full quit from work mode
+                        SESSION["quit"] = True
+                    stop_action = action
                     break
                 if action == "pause":
                     player.toggle()
@@ -241,7 +246,8 @@ def work_ui(player, palette, controller=None):
                      style=f"dim {pal0(palette, 2)}"),
             )
             live.update(Align.center(body))
-            time.sleep(0.14)
+            time.sleep(0.07)
+    return stop_action
 
 
 def playback_ui(player, track, composer_key: str, palette, controller=None,
@@ -259,7 +265,7 @@ def playback_ui(player, track, composer_key: str, palette, controller=None,
     duration = getattr(player, "duration", 0.0) or 0.0
     if note == "work":
         return work_ui(player, palette, controller=controller)
-    stop_requested = False
+    stop_requested = None
     from .anim import Live as _Live
     live = _Live(Align.center(Text()), console=console,
                  refresh_per_second=7, transient=False)
@@ -269,12 +275,8 @@ def playback_ui(player, track, composer_key: str, palette, controller=None,
                 action = controller.poll()
                 if action == "pause":
                     player.toggle()
-                elif action in ("next", "stop"):
-                    stop_requested = True
-                    player.stop()
-                    break
-                elif action == "back":
-                    stop_requested = True
+                elif action in ("next", "stop", "back"):
+                    stop_requested = action
                     player.stop()
                     break
             tick += 1
@@ -311,5 +313,6 @@ def playback_ui(player, track, composer_key: str, palette, controller=None,
                 head,
             )
             live.update(Align.center(group))
-            time.sleep(0.12)
+            time.sleep(0.06)
+    return stop_requested
     return "next" if stop_requested else "done"

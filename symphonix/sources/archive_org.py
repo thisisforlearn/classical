@@ -9,13 +9,15 @@ from .base import get_session, human_size
 
 AUDIO_EXTS = (".mp3", ".ogg", ".oga", ".flac", ".m4a", ".wav", ".aac")
 
-def search(query: str, composer: str = "", limit: int = 10) -> "list[Track]":
+def search(query: str, composer: str = "", limit: int = 10, hifi: bool = False):
     q = []
     if query:
         q.append(f'(title:({query}) OR description:({query}))')
     if composer:
         q.append(f'creator:"{composer}"')
     q.append('mediatype:audio')
+    if hifi:
+        q.append('format:(FLAC OR "Lossless Audio")')
     qa = quote(" AND ".join(q))
     fields = ["identifier", "title", "creator", "year", "date", "downloads", "licenseurl"]
     fl = "&".join(f"fl[]={f}" for f in fields)
@@ -25,6 +27,7 @@ def search(query: str, composer: str = "", limit: int = 10) -> "list[Track]":
     r.raise_for_status()
     data = r.json()
     tracks = []
+    fallback_docs = []
     for doc in data.get("response", {}).get("docs", []):
         ident = doc.get("identifier", "")
         if not ident:
@@ -36,10 +39,14 @@ def search(query: str, composer: str = "", limit: int = 10) -> "list[Track]":
         license_ = doc.get("licenseurl", "") or ""
         year = str(doc.get("year", "") or (doc.get("date", "") or "").split("-")[0])
         # resolve an actual audio file lazily-on-demand; but resolve one now
-        files = list_audio_files(ident)
+        files = list_audio_files(ident, hifi=hifi)
         if files:
             f = files[0]
             name = f["name"]
+            ext = name.rsplit(".", 1)[-1].lower()
+            if hifi and ext not in ("flac", "wav", "aiff"):
+                fallback_docs.append(doc)     # keep as backup only
+                continue
             dur = f.get("length", "")
             try:
                 m, s2 = divmod(int(float(dur)), 60)
@@ -63,6 +70,39 @@ def search(query: str, composer: str = "", limit: int = 10) -> "list[Track]":
                                 url=f"https://archive.org/details/{ident}",
                                 title=title, composer="", performer=creator,
                                 year=year, source="archive"))
+    if hifi and not tracks:
+        # no identifiers with lossless: retry same docs without the skip
+        for doc in fallback_docs[: limit]:
+            pass  # reuse the same loop by recursion-lite: fall through below
+        for doc in fallback_docs[: limit]:
+            ident = doc.get("identifier", "")
+            if not ident:
+                continue
+            title = doc.get("title") or ident
+            creator = doc.get("creator") or ""
+            if isinstance(creator, list):
+                creator = "; ".join(creator)
+            year = str(doc.get("year", "") or (doc.get("date", "") or "").split("-")[0])
+            files = list_audio_files(ident, hifi=False)
+            if not files:
+                continue
+            f = files[0]
+            name, ext = f["name"], f["name"].rsplit(".", 1)[-1].lower()
+            dur = f.get("length", "")
+            try:
+                m, s2 = divmod(int(float(dur)), 60)
+                dur = f"{m:02d}:{s2:02d}"
+            except (TypeError, ValueError):
+                dur = str(dur or "")
+            tracks.append(Track(
+                id=f"{ident}/{name}",
+                url=f"https://archive.org/download/{quote(ident)}/{quote(name)}",
+                title=f.get("nice_title", _strip_track_title(title, name)) or (title or ident),
+                composer="", performer=creator,
+                year=year, source="archive", ext=ext,
+                duration=str(dur), size=int(f.get("size", 0) or 0),
+                license="Public Domain / CC", filename=name,
+            ))
     return tracks
 
 def _strip_track_title(title, filename):
@@ -80,7 +120,7 @@ def _strip_track_title(title, filename):
         return base[:95].title()
     return (title or "").strip()[:95]
 
-def list_audio_files(identifier: str) -> "list[dict]":
+def list_audio_files(identifier: str, hifi: bool = False) -> "list[dict]":
     url = f"https://archive.org/metadata/{quote(identifier)}"
     r = get_session().get(url, timeout=(6, 25))
     r.raise_for_status()
@@ -96,7 +136,11 @@ def list_audio_files(identifier: str) -> "list[dict]":
         f["nice_title"] = _strip_track_title(f.get("title", "") or "", name)
         out.append(f)
     # special key to track total for ui
-    pref = {"mp3": 0, "flac": 1, "m4a": 2, "aac": 2, "ogg": 3, "oga": 3, "wav": 4}
+    if hifi:
+        pref = {"flac": 0, "wav": 1, "aiff": 2, "m4a": 3, "aac": 3,
+                "ogg": 4, "oga": 4, "mp3": 5}
+    else:
+        pref = {"mp3": 0, "flac": 1, "m4a": 2, "aac": 2, "ogg": 3, "oga": 3, "wav": 4}
     out.sort(key=lambda x: (pref.get(x.get("name", "").rsplit(".", 1)[-1].lower(), 9),
                             -int(x.get("size", 0) or 0)))
     return out

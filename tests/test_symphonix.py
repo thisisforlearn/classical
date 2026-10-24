@@ -121,7 +121,7 @@ def test_work_prefetch_offline(monkeypatch):
     from symphonix.workmode import prefetch
     from symphonix.track import Track
     hits = {"a": [], "b": []}
-    def fake(q, composer="", limit=5, which="all"):
+    def fake(q, composer="", limit=6, which="all", hifi=False):
         idx = "a" if "toccata" in q.lower() else "b"
         return [Track(id=idx, url=f"http://{idx}", title=q[:24], source="archive")]
     import symphonix.search as S

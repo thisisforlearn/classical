@@ -207,15 +207,22 @@ def run_queue(queue, note=""):
             p.play(t)
             key = t.guess_composer_key()
             action = None
+            ui_action = None
             try:
                 from .anim import playback_ui
-                action = playback_ui(p, t, key, palette, ctl, note=note)
+                ui_action = playback_ui(p, t, key, palette, ctl, note=note)
             except KeyboardInterrupt:
-                action = None
-            if action == "done":
+                ui_action = None
+            finally:
+                try:
+                    p.stop()
+                except Exception:
+                    pass
+            # q/s pressed during playback: stop the WHOLE queue (the stop bug)
+            if ui_action in ("stop", "back"):
                 break
-            if ctl.poll():
-                break
+            # nothing to do for "next": fall through to the next track
+
     except KeyboardInterrupt:
         pass
     finally:
@@ -276,9 +283,11 @@ def cmd_work(args):
     """sx work — endless recommendation loop with animated staff art."""
     con().print("[bold]🧑‍💻 work mode[/] · cornerstones on repeat — "
                 "space: pause · n: skip · q: stop")
-    from .workmode import WorkRunner
+    from .workmode import COLLECTIONS, WorkRunner
+    items = COLLECTIONS.get(getattr(args, "collection", None) or "full canon") \
+        or list(COLLECTIONS.values())[0]
     try:
-        WorkRunner(palette_for()).play_forever()
+        WorkRunner(palette_for(), items=items).play_forever()
     except KeyboardInterrupt:
         pass
     except Exception as exc:
@@ -371,8 +380,16 @@ def cmd_menu(args=None):
                 continue
             elif i == 2:                                     # work mode
                 try:
-                    from .workmode import WorkRunner
-                    WorkRunner(palette_for()).play_forever()
+                    from .workmode import COLLECTIONS, WorkRunner
+                    coll_names = list(COLLECTIONS)
+                    L = pick("work canon - choose an era/recital", coll_names,
+                             palette=palette_for())
+                    if L is None:
+                        continue
+                    items = COLLECTIONS[coll_names[L]]
+                    con().print(f"[bold]🧑‍💻 work mode[/] · [dim]{coll_names[L]} — "
+                                "space: pause · n: skip · q: stop[/]")
+                    WorkRunner(palette_for(), items=items).play_forever()
                 except KeyboardInterrupt:
                     pass
                 except Exception as exc:
@@ -413,8 +430,12 @@ def cmd_menu(args=None):
                                                  src=None))
                 continue
             elif i == 6:                                     # playlists
-                from .playlists import Playlists
+                from .playlists import Playlists, seed_presets
                 P = Playlists()
+                try:
+                    seed_presets(P)
+                except Exception:
+                    pass
                 names = P.list()
                 opts = list(names) + ["✚  add: search a piece"]
                 opts.append("☰  play a playlist")
@@ -812,6 +833,7 @@ def build_parser():
     p.set_defaults(func=cmd_banner)
 
     p = sub.add_parser("work", help="🧑‍💻 endless focus loop of canon cornerstones")
+    p.add_argument("collection", nargs="?", default="full canon")
     p.set_defaults(func=cmd_work)
 
     p = sub.add_parser("ui", help="🎛 control tier: arrow | num | type")

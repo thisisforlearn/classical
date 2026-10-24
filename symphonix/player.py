@@ -268,11 +268,20 @@ class Player:
             played_frames = int(self.elapsed * 44100)
             dl_alive = self._dl_thread and self._dl_thread.is_alive()
             if not dl_alive and not self._download.is_written_complete:
-                # decoder consumed whole file and it's done
                 break
             if not dl_alive:
                 break
-            time.sleep(0.1)        # wait for a bit more download
+            # anti-glitch: before re-opening the decoder, let the file gain a
+            # little head-room so we don't thrash open/close on slow links
+            played_bytes = played_frames * 4
+            waited = 0.0
+            while not self._stop.is_set() and waited < 4.0:
+                have = size_now() - played_bytes
+                if have >= 384 * 1024 or not dl_alive:
+                    break
+                time.sleep(0.06)
+                waited += 0.06
+            time.sleep(0.04)      # wait for a bit to ensure download
         self._stop.set()
         if self._dl_thread and self._dl_thread.is_alive():
             self._dl_thread.join(timeout=3)

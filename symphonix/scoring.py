@@ -45,6 +45,25 @@ def score_track(track, query):
             score -= 8.0
     if getattr(track, "source", "") == "archive":
         score += 3.0
+    # ---------- lossless/better-bit-rate reward (public-domain quality) ------
+    ext = (getattr(track, "format", "") or getattr(track, "ext", "") or "").lower()
+    dur = None
+    if track.duration and ":" in track.duration:
+        try:
+            m, sec = track.duration.split(":")[:2]
+            dur = int(m) * 60 + float(sec)
+        except (ValueError, TypeError):
+            dur = None
+    if track.size and dur:
+        kbps = track.size * 8.0 / dur / 1000.0
+        if ext in ("flac", "wav", "aiff") or kbps > 800:
+            score += 45.0                      # lossless rips first
+        elif kbps >= 256:
+            score += 14.0
+        elif kbps and kbps < 96:
+            score -= 22.0                      # whisper-quality garbage
+    if ext == "flac":
+        score += 15.0
     return score
 
 
